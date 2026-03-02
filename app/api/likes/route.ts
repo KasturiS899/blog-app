@@ -1,30 +1,26 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { postId, userId } = body;
-
-  if (!postId || !userId) {
-    return NextResponse.json(
-      { error: "postId and userId required" },
-      { status: 400 }
-    );
-  }
-
   try {
+    const { postId, userId } = await req.json();
+
+    if (!postId) {
+      return NextResponse.json({ error: "postId required" }, { status: 400 });
+    }
+
     const like = await prisma.like.create({
       data: {
         postId,
-        userId,
+        userId: userId ?? null,
       },
     });
 
     return NextResponse.json(like);
   } catch (error) {
+    console.error("Like error:", error);
     return NextResponse.json(
-      { error: "User already liked this post" },
-      { status: 400 }
+      { error: "Already liked or error occurred" },
+      { status: 400 },
     );
   }
 }

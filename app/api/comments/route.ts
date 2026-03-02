@@ -2,25 +2,37 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const { content, postId, userId } = body;
+  try {
+    const { content, postId, userId } = await req.json();
 
-  if (!content || !postId || !userId) {
+    if (!content || !postId) {
+      return NextResponse.json(
+        { error: "content and postId required" },
+        { status: 400 },
+      );
+    }
+
+    const comment = await prisma.comment.create({
+      data: {
+        content,
+        postId,
+        userId: userId ?? null, // allow guest
+      },
+      include: {
+        user: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    return NextResponse.json(comment);
+  } catch (error) {
+    console.error("Comment error:", error);
     return NextResponse.json(
-      { error: "All fields required" },
-      { status: 400 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
-
-  const comment = await prisma.comment.create({
-    data: {
-      content,
-      postId,
-      userId,
-    },
-  });
-
-  return NextResponse.json(comment);
 }
 
 export async function GET() {
