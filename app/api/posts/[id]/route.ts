@@ -1,26 +1,42 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const postId = parseInt(params.id);
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id } = await context.params;
+  const postId = parseInt(id);
+
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    include: { categories: true, author: { select: { id: true, name: true, email: true } } },
+    include: {
+      categories: true,
+      author: { select: { id: true, name: true, email: true } },
+    },
   });
 
-  if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+  if (!post) {
+    return NextResponse.json({ error: "Post not found" }, { status: 404 });
+  }
+
   return NextResponse.json(post);
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
   try {
     const decoded = verifyToken(req);
-    const postId = parseInt(params.id);
+    const { id } = await context.params;
+    const postId = parseInt(id);
     const { title, content, categoryIds } = await req.json();
 
     const post = await prisma.post.findUnique({ where: { id: postId } });
-    if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    if (!post)
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
     if (decoded.role !== "ADMIN" && post.authorId !== decoded.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -31,7 +47,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       data: {
         title: title ?? post.title,
         content: content ?? post.content,
-        categories: categoryIds ? { set: categoryIds.map((id: number) => ({ id })) } : undefined,
+        categories: categoryIds
+          ? { set: categoryIds.map((id: number) => ({ id })) }
+          : undefined,
       },
       include: { categories: true },
     });
@@ -42,13 +60,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
   try {
     const decoded = verifyToken(req);
     const postId = parseInt(params.id);
 
     const post = await prisma.post.findUnique({ where: { id: postId } });
-    if (!post) return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    if (!post)
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
     if (decoded.role !== "ADMIN" && post.authorId !== decoded.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
