@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { content, postId, userId } = await req.json();
+    const { content, postId, userId, email } = await req.json();
 
     if (!content || !postId) {
       return NextResponse.json(
@@ -16,7 +16,8 @@ export async function POST(req: Request) {
       data: {
         content,
         postId,
-        userId: userId ?? null, // allow guest
+        userId: userId ?? null,
+        guestEmail: userId ? null : email, // allow guest
       },
       include: {
         user: {

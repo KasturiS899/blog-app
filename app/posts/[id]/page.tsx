@@ -97,13 +97,13 @@ export default function PostDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto py-16 px-4">
-      <h1 className="text-4xl font-bold mb-6">{post.title}</h1>
+      <h1 className="text-4xl font-bold mb-6">{post?.title}</h1>
 
       <p className="text-gray-600 mb-6">
-        By {post.author.name} • {post._count.likes} Likes
+        By {post.author.name} • {post?._count?.likes} Likes
       </p>
 
-      <p className="mb-10">{post.content}</p>
+      <p className="mb-10">{post?.content}</p>
 
       <button
         onClick={handleLike}
@@ -114,7 +114,7 @@ export default function PostDetailPage() {
 
       <h2 className="text-2xl font-semibold mb-4">Comments</h2>
 
-      {post.comments.map((c) => (
+      {post?.comments?.map((c) => (
         <div key={c.id} className="border p-4 mb-3 rounded">
           <p className="text-sm text-gray-500">
             {c.author?.name || c.guestName}

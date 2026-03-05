@@ -1,15 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 
 export default function Navbar() {
   const router = useRouter();
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+  const isLoggedIn = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    return !!localStorage.getItem("token");
+  }, []);
 
   const logout = () => {
     localStorage.removeItem("token");
     router.push("/login");
+    router.refresh(); // force re-render
   };
 
   return (
@@ -20,18 +25,31 @@ export default function Navbar() {
       >
         TheBlog
       </div>
-      <div className="flex gap-4">
+
+      <div className="flex gap-4 items-center">
         <button onClick={() => router.push("/")}>Home</button>
-        <button onClick={() => router.push("/categories")}>Categories</button>
-        {token ? (
+        <button onClick={() => router.push("/categories")}>
+          Categories
+        </button>
+
+        {isLoggedIn ? (
           <>
+            <button onClick={() => router.push("/dashboard")}>
+              Dashboard
+            </button>
+
             <button onClick={() => router.push("/posts/create")}>
               Create Post
             </button>
-            <button onClick={logout}>Logout</button>
+
+            <button onClick={logout} className="text-red-600">
+              Logout
+            </button>
           </>
         ) : (
-          <button onClick={() => router.push("/login")}>Sign In</button>
+          <button onClick={() => router.push("/login")}>
+            Sign In
+          </button>
         )}
       </div>
     </nav>

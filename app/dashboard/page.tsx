@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Navbar from "../components/Navbar";
 
 interface User {
   id: number;
@@ -147,6 +148,8 @@ export default function DashboardPage() {
   if (loading) return <p className="text-center mt-20">Loading...</p>;
 
   return (
+    <>
+  <Navbar></Navbar>
     <div className="max-w-5xl mx-auto py-12">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -231,5 +234,6 @@ export default function DashboardPage() {
         </div>
       ))}
     </div>
+      </>
   );
 }
