@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface User {
   id: number;
@@ -12,7 +12,14 @@ interface Category {
   id: number;
   name: string;
 }
-
+interface Comment {
+  id: number;
+  content: string;
+  guestEmail?: string;
+  user?: {
+    name: string;
+  };
+}
 interface Post {
   id: number;
   title: string;
@@ -30,12 +37,12 @@ interface PostModalProps {
 
 export default function PostModal({ post, user, onClose }: PostModalProps) {
   const [likes, setLikes] = useState(post._count.likes);
-  const [comments, setComments] = useState<string[]>([]);
   const [newComment, setNewComment] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [comments, setComments] = useState<Comment[]>([]);
   const handleLike = async () => {
     try {
-      const res = await fetch("/api/like", {
+      const res = await fetch("/api/likes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +69,7 @@ export default function PostModal({ post, user, onClose }: PostModalProps) {
     }
 
     try {
-      const res = await fetch("/api/comment", {
+      const res = await fetch("/api/comments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,6 +90,21 @@ export default function PostModal({ post, user, onClose }: PostModalProps) {
       console.error(err);
     }
   };
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const res = await fetch(`/api/comments?postId=${post.id}`);
+        const data: Comment[] = await res.json();
+
+        setComments(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchComments();
+  }, [post.id]);
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
       {/* modal container */}
@@ -153,9 +175,12 @@ export default function PostModal({ post, user, onClose }: PostModalProps) {
               <p className="text-sm text-gray-400">No comments yet</p>
             )}
 
-            {comments.map((c, i) => (
-              <div key={i} className="bg-gray-100 p-3 rounded-md text-sm">
-                {c}
+            {comments.map((c) => (
+              <div key={c.id} className="bg-gray-100 p-3 rounded-md text-sm">
+                <p className="font-semibold">
+                  {c.user?.name ?? c.guestEmail ?? "Guest"}
+                </p>
+                <p>{c.content}</p>
               </div>
             ))}
           </div>

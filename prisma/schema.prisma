@@ -38,11 +38,13 @@ model Post {
 }
 
 model Comment {
-  id      Int   @id @default(autoincrement())
-  content String
-  postId  Int
-  userId  Int?
+  id         Int      @id @default(autoincrement())
+  content    String
+  postId     Int
+  userId     Int?
   guestEmail String?
+  createdAt  DateTime @default(now())
+
   post Post @relation(fields: [postId], references: [id])
   user User? @relation(fields: [userId], references: [id])
 }

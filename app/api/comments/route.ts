@@ -36,8 +36,12 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const postId = searchParams.get("postId");
+
   const comments = await prisma.comment.findMany({
+    where: postId ? { postId: Number(postId) } : undefined,
     include: {
       user: {
         select: {
@@ -46,12 +50,9 @@ export async function GET() {
           email: true,
         },
       },
-      post: {
-        select: {
-          id: true,
-          title: true,
-        },
-      },
+    },
+    orderBy: {
+      createdAt: "desc",
     },
   });
 
