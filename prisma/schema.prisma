@@ -35,6 +35,7 @@ model Post {
   comments   Comment[]
   likes      Like[]
   categories Category[]
+  status    String   @default("DRAFT") // DRAFT | PUBLISHED
 }
 
 model Comment {

@@ -9,11 +9,24 @@ export async function GET(req: Request) {
   const limit = parseInt(searchParams.get("limit") || "5");
   const category = searchParams.get("category");
   const skip = (page - 1) * limit;
+  let userId: number | null = null;
 
+  try {
+    const decoded = verifyToken(req);
+    userId = decoded.userId;
+  } catch {}
   const posts = await prisma.post.findMany({
-    where: category
-      ? { categories: { some: { name: category } } }
-      : undefined,
+    where: {
+      AND: [
+        category ? { categories: { some: { name: category } } } : {},
+        {
+          OR: [
+            { status: "PUBLISHED" },
+            ...(userId ? [{ status: "DRAFT", authorId: userId }] : []),
+          ],
+        },
+      ],
+    },
     skip,
     take: limit,
     orderBy: { id: "desc" },
@@ -36,21 +49,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { title, content, categoryIds } = await req.json();
-    if (!title || !content) return NextResponse.json({ error: "All fields required" }, { status: 400 });
+    const { title, content, categoryIds, status } = await req.json();
+    if (!title || !content)
+      return NextResponse.json(
+        { error: "All fields required" },
+        { status: 400 },
+      );
 
     const post = await prisma.post.create({
       data: {
         title,
         content,
+       status: status ?? "DRAFT",
         authorId: decoded.userId,
-        categories: { connect: categoryIds?.map((id: number) => ({ id })) || [] },
+        categories: {
+          connect: categoryIds?.map((id: number) => ({ id })) || [],
+        },
       },
       include: { categories: true },
     });
 
     return NextResponse.json(post);
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

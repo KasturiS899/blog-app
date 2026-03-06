@@ -24,15 +24,15 @@ export async function GET(
   return NextResponse.json(post);
 }
 
+
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+ context: { params: Promise<{ id: string }> }, // ✅
 ) {
   try {
-    const decoded = verifyToken(req);
-    const { id } = await context.params;
+    const decoded = verifyToken(req);const { id } = await context.params;
     const postId = parseInt(id);
-    const { title, content, categoryIds } = await req.json();
+    const { title, content, categoryIds, status } = await req.json();
 
     const post = await prisma.post.findUnique({ where: { id: postId } });
     if (!post)
@@ -47,6 +47,7 @@ export async function PATCH(
       data: {
         title: title ?? post.title,
         content: content ?? post.content,
+        status: status ?? post.status,
         categories: categoryIds
           ? { set: categoryIds.map((id: number) => ({ id })) }
           : undefined,

@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "../components/Navbar";
+import { FiEdit2 } from "react-icons/fi";
+import { RiDeleteBin6Line } from "react-icons/ri";
+import { HiOutlinePencil } from "react-icons/hi";
+import Skeleton from "../components/Skeleton";
+import { IoCreateOutline } from "react-icons/io5";
+import { FaEdit } from "react-icons/fa";
 
 interface User {
   id: number;
@@ -10,20 +15,12 @@ interface User {
   role: string;
 }
 
-interface Comment {
-  id: number;
-  content: string;
-  user: User;
-}
-
 interface Post {
   id: number;
   title: string;
-  content: string;
-  author: User;
+  status: "PUBLISHED" | "DRAFT";
+  createdAt: string;
   categories: { id: number; name: string }[];
-  _count: { likes: number; comments: number };
-  comments: Comment[];
 }
 
 export default function DashboardPage() {
@@ -31,7 +28,6 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [commentInputs, setCommentInputs] = useState<{ [key: number]: string }>({});
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -39,16 +35,19 @@ export default function DashboardPage() {
 
     const fetchData = async () => {
       try {
-        // Get logged-in user
         const userRes = await fetch("/api/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (!userRes.ok) return router.push("/login");
+
         const userData: User = await userRes.json();
         setUser(userData);
 
-        // Get posts
-        const postRes = await fetch("/api/posts");
+        const postRes = await fetch("/api/posts", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         const postData: Post[] = await postRes.json();
         setPosts(postData);
       } catch (err) {
@@ -64,176 +63,128 @@ export default function DashboardPage() {
   const handleDelete = async (id: number) => {
     const token = localStorage.getItem("token");
     if (!token) return;
+
     if (!confirm("Are you sure you want to delete this post?")) return;
 
     const res = await fetch(`/api/posts/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (res.ok) setPosts(posts.filter((p) => p.id !== id));
-  };
 
-  const handleLike = async (postId: number) => {
-    const token = localStorage.getItem("token");
-    if (!token || !user) return;
-
-    try {
-      const res = await fetch("/api/likes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId, userId: user.id }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Already liked");
-        return;
-      }
-
-      // Update likes locally
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, _count: { ...p._count, likes: p._count.likes + 1 } }
-            : p
-        )
-      );
-    } catch (err) {
-      console.error(err);
+    if (res.ok) {
+      setPosts(posts.filter((p) => p.id !== id));
     }
   };
 
-  const handleCommentChange = (postId: number, value: string) => {
-    setCommentInputs((prev) => ({ ...prev, [postId]: value }));
-  };
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-10 px-6">
+        {/* Header stays visible */}
+        <div className="flex items-start justify-between m-8">
+          <div>
+            <h1 className="text-4xl font-serif font-bold text-gray-900">
+              Dashboard
+            </h1>
 
-  const handleCommentSubmit = async (postId: number) => {
-    const token = localStorage.getItem("token");
-    if (!token || !user) return;
+            <p className="mt-6 text-gray-300">Welcome...</p>
+            <p className="text-sm text-gray-200">Role...</p>
+          </div>
 
-    const content = commentInputs[postId];
-    if (!content) return;
+          <div className="w-28 h-9 bg-gray-200 rounded-md animate-pulse"></div>
+        </div>
 
-    try {
-      const res = await fetch("/api/comments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId, userId: user.id, content }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || "Failed to comment");
-        return;
-      }
-
-      const newComment = await res.json();
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? {
-                ...p,
-                comments: [...p.comments, newComment],
-                _count: { ...p._count, comments: p._count.comments + 1 },
-              }
-            : p
-        )
-      );
-      setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  if (loading) return <p className="text-center mt-20">Loading...</p>;
+        {/* Skeleton Posts */}
+        <div className="space-y-4">
+          <Skeleton type="dashboardPost" count={4} />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-  <Navbar></Navbar>
-    <div className="max-w-5xl mx-auto py-12">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="max-w-7xl mx-auto py-10 px-6">
+      {/* Header */}
+      <div className="flex items-start justify-between m-8">
+        <div>
+          <h1 className="text-4xl font-serif font-bold font-bold text-gray-900">
+            Dashboard
+          </h1>
+
+          {user && (
+            <>
+              <p className="mt-6 text-gray-700">Welcome, {user.name}</p>
+              <p className="text-sm text-gray-500 ">
+                Role <span className="text-orange-500">{user.role}</span>
+              </p>
+            </>
+          )}
+        </div>
+
         <button
-          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
           onClick={() => router.push("/posts/create")}
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-400 text-white px-4 py-2 rounded-md text-sm font-medium"
         >
-          Create Post
+          <HiOutlinePencil size={16} />
+          New Post
         </button>
       </div>
 
-      {user && (
-        <p className="mb-6 text-gray-700">
-          Welcome, {user.name} ({user.role})
-        </p>
-      )}
-
-      {posts.map((post) => (
-        <div key={post.id} className="border p-6 rounded-lg shadow mb-6 bg-white">
-          <h2 className="text-xl font-semibold">{post.title}</h2>
-          <p className="my-2">{post.content}</p>
-          <p className="text-sm text-gray-500 mb-2">
-            By {post.author.name} | Likes: {post._count.likes} | Comments: {post._count.comments}
-          </p>
-
-          <div className="flex gap-2 mb-3">
-            {/* Edit button only for author/admin */}
-            {(user?.role === "ADMIN" || user?.id === post.author.id) && (
-              <button
-                className="px-3 py-1 bg-blue-600 text-white rounded"
-                onClick={() => router.push(`/posts/edit/${post.id}`)}
-              >
-                Edit
-              </button>
-            )}
-
-            {/* Delete button only for author/admin */}
-            {(user?.role === "ADMIN" || user?.id === post.author.id) && (
-              <button
-                className="px-3 py-1 bg-red-600 text-white rounded"
-                onClick={() => handleDelete(post.id)}
-              >
-                Delete
-              </button>
-            )}
-
-            {/* Like button for everyone */}
-            <button
-              className="px-3 py-1 bg-green-600 text-white rounded"
-              onClick={() => handleLike(post.id)}
-            >
-              Like
-            </button>
-          </div>
-
-          {/* Comments section */}
-          <div className="mt-2">
-            {post.comments.map((c) => (
-              <div key={c.id} className="border p-2 rounded mb-1">
-                <p>{c.content}</p>
-                <small className="text-gray-500">By {c.user.name}</small>
+      {/* Post List */}
+      <div className="space-y-4">
+        {posts.map((post) => (
+          <div
+            key={post.id}
+            className="relative flex justify-between items-center border border-gray-200 rounded-lg p-6 min-h-[110px] bg-white hover:shadow-sm transition"
+          >
+            {/* Floating Badge */}
+            <div className="absolute top-0 right-0 overflow-hidden w-24 h-24">
+              <div className="absolute top-0 right-0 overflow-hidden w-28 h-28">
+                <span
+                  className={`absolute top-5 right-[-40px] w-[140px] text-center rotate-45 text-xs font-semibold py-1 shadow ${
+                    post.status === "PUBLISHED"
+                      ? "bg-orange-500 text-white"
+                      : "bg-gray-400 text-white"
+                  }`}
+                >
+                  {post.status === "PUBLISHED" ? "Published" : "Draft"}
+                </span>
               </div>
-            ))}
+            </div>
 
-            {/* Add comment input */}
-            <div className="flex gap-2 mt-2">
-              <input
-                type="text"
-                className="flex-1 border rounded px-2 py-1"
-                placeholder="Add a comment"
-                value={commentInputs[post.id] || ""}
-                onChange={(e) => handleCommentChange(post.id, e.target.value)}
-              />
+            {/* Left */}
+            <div>
+              <h2 className="font-semibold text-gray-900">{post.title}</h2>
+
+              <p className="text-sm text-gray-500 mt-1">
+                {post.categories?.map((cat, index) => (
+                  <span key={cat.id}>
+                    {cat.name}
+                    {index !== post.categories.length - 1 && ", "}
+                  </span>
+                ))}{" "}
+                · {new Date(post.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+
+            {/* Right Actions */}
+            <div className="flex items-center gap-8 text-gray-600 mr-10">
               <button
-                className="px-3 py-1 bg-blue-600 text-white rounded"
-                onClick={() => handleCommentSubmit(post.id)}
+                onClick={() => router.push(`/posts/edit/${post.id}`)}
+                className="hover:text-blue-300 text-blue-600"
               >
-                Comment
+                <FaEdit size={18} />
+              </button>
+
+              <button
+                onClick={() => handleDelete(post.id)}
+                className="hover:text-red-300 text-red-600"
+              >
+                <RiDeleteBin6Line size={18} />
               </button>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-      </>
   );
 }

@@ -15,10 +15,12 @@ export default function CreatePostPage() {
   const [content, setContent] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("DRAFT");
 
-  // Fetch categories from API
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -29,16 +31,30 @@ export default function CreatePostPage() {
         console.error(err);
       }
     };
+
     fetchCategories();
   }, []);
 
+  // Toggle category
+  const toggleCategory = (id: number) => {
+    if (selectedCategories.includes(id)) {
+      setSelectedCategories(selectedCategories.filter((c) => c !== id));
+    } else {
+      setSelectedCategories([...selectedCategories, id]);
+    }
+  };
+
+  // Submit post
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     const token = localStorage.getItem("token");
-    if (!token) return router.push("/login");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
 
     try {
       const res = await fetch("/api/posts", {
@@ -51,10 +67,12 @@ export default function CreatePostPage() {
           title,
           content,
           categoryIds: selectedCategories,
+          status,
         }),
       });
 
       const data = await res.json();
+
       if (!res.ok) {
         setError(data.error || "Failed to create post");
         setLoading(false);
@@ -65,14 +83,6 @@ export default function CreatePostPage() {
     } catch {
       setError("Something went wrong");
       setLoading(false);
-    }
-  };
-
-  const toggleCategory = (id: number) => {
-    if (selectedCategories.includes(id)) {
-      setSelectedCategories(selectedCategories.filter((c) => c !== id));
-    } else {
-      setSelectedCategories([...selectedCategories, id]);
     }
   };
 
@@ -87,40 +97,32 @@ export default function CreatePostPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Title */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">Title</label>
           <input
             type="text"
+            placeholder="Enter post title"
+            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter post title"
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             required
           />
         </div>
 
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">Content</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write your content here..."
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 h-48 resize-none"
-            required
-          />
-        </div>
-
+        {/* Category */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
             Categories
           </label>
+
           <div className="flex flex-wrap gap-3">
             {categories.map((cat) => (
               <label
                 key={cat.id}
-                className={`flex items-center gap-2 px-3 py-1 border rounded-full cursor-pointer ${
+                className={`flex items-center gap-2 px-3 py-1 border border-gray-200 rounded-full cursor-pointer ${
                   selectedCategories.includes(cat.id)
-                    ? "bg-purple-500 text-white border-purple-500"
+                    ? "bg-orange-500 text-white border-orange-500"
                     : "bg-gray-100 text-gray-700 border-gray-300"
                 }`}
               >
@@ -136,13 +138,62 @@ export default function CreatePostPage() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          {loading ? "Creating..." : "Create Post"}
-        </button>
+        {/* Content */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            Content
+          </label>
+          <textarea
+            placeholder="Write your content here..."
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 h-48 resize-none"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            required
+          />
+        </div>
+
+        {/* Status */}
+        {/* Publish Toggle */}
+        <div className="flex items-center justify-left  p-4">
+          <span className="text-gray-700 font-medium pr-4">
+            Publish Immediately
+          </span>
+
+          <button
+            type="button"
+            onClick={() =>
+              setStatus(status === "PUBLISHED" ? "DRAFT" : "PUBLISHED")
+            }
+            className={`relative w-14 h-7 flex items-center rounded-full transition ${
+              status === "PUBLISHED" ? "bg-orange-500" : "bg-gray-300"
+            }`}
+          >
+            <span
+              className={`absolute left-1 w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
+                status === "PUBLISHED" ? "translate-x-7" : ""
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 py-3 bg-orange-600 text-white font-semibold rounded-lg hover:bg-orange-400 transition"
+          >
+            {loading ? "Creating..." : "Create Post"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="flex-1 py-3 border border-gray-200 rounded-lg hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+        </div>
       </form>
     </div>
   );
