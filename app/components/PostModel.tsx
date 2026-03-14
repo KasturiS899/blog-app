@@ -23,6 +23,7 @@ interface Comment {
 
 interface Post {
   id: number;
+  imageUrl?: string;
   title: string;
   content: string;
   author: User;
@@ -51,22 +52,32 @@ export default function PostModal({
   const [comments, setComments] = useState<Comment[]>([]);
   const [loadingComments, setLoadingComments] = useState(true);
   const [visibleCount, setVisibleCount] = useState(3); // show first 3 comments
-
+  const [liked, setLiked] = useState(false);
   const handleLike = async () => {
     try {
       const res = await fetch("/api/likes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId: post.id, userId: user?.id ?? null }),
+        body: JSON.stringify({
+          postId: post.id,
+          userId: user?.id ?? null,
+          guestId: user ? null : guestId,
+        }),
       });
-      if (!res.ok) throw new Error("Like failed");
-      setLikes((prev) => prev + 1);
-      onLike(post.id);
+
+      const data = await res.json();
+
+      if (data.liked) {
+        setLikes((prev) => prev + 1);
+        setLiked(true);
+      } else {
+        setLikes((prev) => prev - 1);
+        setLiked(false);
+      }
     } catch (err) {
       console.error(err);
     }
   };
-
   const handleComment = async () => {
     if (!newComment.trim()) return;
     if (!user && !guestEmail.trim()) {
@@ -116,64 +127,89 @@ export default function PostModal({
       setVisibleCount(comments.length);
     }
   };
+  const guestId =
+    typeof window !== "undefined"
+      ? localStorage.getItem("guestId") ||
+        (() => {
+          const id = crypto.randomUUID();
+          localStorage.setItem("guestId", id);
+          return id;
+        })()
+      : null;
+  
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="bg-white rounded-xl w-full max-w-2xl p-6 relative max-h-[90vh] shadow-lg">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-4 text-gray-500 text-xl hover:text-black"
-        >
-          ✕
-        </button>
+      <div className="bg-white rounded-xl w-full max-w-6xl h-[90vh] flex flex-col shadow-lg">
+        {/* HEADER */}
+        <div className="sticky top-0 bg-white z-10  px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold">{post.title}</h2>
 
-        <h2 className="text-2xl font-bold mb-4">{post.title}</h2>
-        <p className="text-sm text-gray-500 mb-4">By {post.author.name}</p>
-        <p className="text-gray-700 mb-6 whitespace-pre-line">{post.content}</p>
+          <div className="flex items-center gap-3">
+            {user && (user.role === "ADMIN" || user.id === post.author.id) && (
+              <button className="text-gray-600 hover:text-blue-600 text-lg">
+                ✏️
+              </button>
+            )}
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          {post.categories.map((c) => (
-            <span
-              key={c.id}
-              className="bg-gray-100 px-3 py-1 rounded-full text-sm"
+            <button
+              onClick={onClose}
+              className="text-gray-500 text-xl hover:text-black"
             >
-              {c.name}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={handleLike}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-          >
-            ❤️ Like ({likes})
-          </button>
-
-          {user && (user.role === "ADMIN" || user.id === post.author.id) && (
-            <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              Edit
+              ✕
             </button>
-          )}
+          </div>
         </div>
 
-        {!user && (
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={guestEmail}
-            onChange={(e) => setGuestEmail(e.target.value)}
-            className="border rounded px-3 py-2 w-full mb-2"
-          />
-        )}
+        {/* BODY */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {/* IMAGE */}
+          {post.imageUrl && (
+            <div className="w-full flex justify-center mb-6 bg-gray-100 rounded-lg overflow-hidden">
+              <img
+                src={post.imageUrl}
+                alt={post.title}
+                className="max-h-[500px] w-auto object-contain"
+              />
+            </div>
+          )}
 
-        <div className="border-t pt-6">
-          <h3 className="font-semibold mb-3 text-lg">
-            Comments ({comments.length})
-          </h3>
+          {/* AUTHOR */}
+          <p className="text-sm text-gray-500 mb-4">By {post.author.name}</p>
 
-          {/* scrollable comments */}
-          <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+          {/* CONTENT */}
+          <p className="text-gray-700 mb-6 whitespace-pre-line">
+            {post.content}
+          </p>
+
+          {/* CATEGORIES */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {post.categories.map((c) => (
+              <span
+                key={c.id}
+                className="bg-gray-100 px-3 py-1 rounded-full text-sm"
+              >
+                {c.name}
+              </span>
+            ))}
+          </div>
+
+          {/* LIKE + COMMENT COUNT */}
+          <div className="flex items-center gap-6 mb-6 text-sm text-gray-600">
+            <button
+              onClick={handleLike}
+              className="flex items-center gap-1 hover:text-red-600"
+            >
+              <span className="text-lg">{liked ? "❤️" : "🤍"}</span>
+              {likes}
+            </button>
+            <span>💬 {comments.length}</span>
+          </div>
+
+          {/* COMMENTS */}
+          <div className="space-y-3 mb-6">
+            <h3 className="font-semibold text-lg">Comments</h3>
+
             {loadingComments ? (
               <Skeleton type="comment" count={3} />
             ) : (
@@ -186,14 +222,28 @@ export default function PostModal({
                 </div>
               ))
             )}
+
+            {comments.length > 3 && !loadingComments && (
+              <button
+                className="text-sm text-orange-600 hover:underline"
+                onClick={toggleShowMore}
+              >
+                {visibleCount >= comments.length ? "Show Less" : "Show More"}
+              </button>
+            )}
           </div>
-          {comments.length > 3 && !loadingComments && (
-            <button
-              className="text-sm text-orange-600 hover:underline mb-4"
-              onClick={toggleShowMore}
-            >
-              {visibleCount >= comments.length ? "Show Less" : "Show More"}
-            </button>
+        </div>
+
+        {/* FOOTER COMMENT INPUT */}
+        <div className=" px-6 py-4 bg-white">
+          {!user && (
+            <input
+              type="email"
+              placeholder="Enter your email to post a comment"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+              className=" rounded  border border-gray-200 px-3 py-2 w-full mb-2 outline-none focus:ring-1 focus:ring-orange-500"
+            />
           )}
 
           <div className="flex gap-2">
@@ -201,8 +251,9 @@ export default function PostModal({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 border rounded px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500"
+              className="flex-1 border border-gray-200 rounded px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500"
             />
+
             <button
               onClick={handleComment}
               className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"

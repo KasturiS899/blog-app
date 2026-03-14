@@ -22,6 +22,7 @@ interface Post {
   title: string;
   content: string;
   author: User;
+  imageUrl?: string;
   categories: Category[];
   _count: { likes: number; comments: number };
 }
@@ -163,36 +164,51 @@ export default function PostSection() {
                   setSelectedPost(post);
                   setShowModal(true);
                 }}
-                className=" relative cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition p-6"
+                className="group relative cursor-pointer bg-white rounded-xl shadow-sm hover:shadow-lg transition overflow-hidden"
               >
-                <h2 className="text-xl font-semibold mb-3 line-clamp-2">
-                  {post.title}
-                </h2>
+                {/* IMAGE */}
+                {post.imageUrl && (
+                  <div className="w-full h-48 overflow-hidden">
+                    <img
+                      src={post?.imageUrl}
+                      alt={post?.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                )}
 
-                <p className="text-gray-600 mb-4 line-clamp-3">
-                  {post.content.slice(0, 120)}...
-                </p>
+                {/* CONTENT */}
+                <div className="p-6">
+                  <h2 className="text-xl font-semibold mb-3 line-clamp-2">
+                    {post.title}
+                  </h2>
 
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {post.categories.map((c) => (
-                    <span
-                      key={c.id}
-                      className="bg-gray-100 text-xs px-3 py-1 rounded-full"
-                    >
-                      {c.name}
-                    </span>
-                  ))}
+                  <p className="text-gray-600 mb-4 line-clamp-3">
+                    {post.content.slice(0, 120)}...
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {post.categories.map((c) => (
+                      <span
+                        key={c.id}
+                        className="bg-gray-100 text-xs px-3 py-1 rounded-full"
+                      >
+                        {c.name}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="text-sm text-gray-500">
+                    By {post.author.name} • {post._count.likes} Likes •{" "}
+                    {post._count.comments} Comments
+                  </div>
                 </div>
 
-                <div className="text-sm text-gray-500">
-                  By {post.author.name} • {post._count.likes} Likes •{" "}
-                  {post._count.comments} Comments
-                </div>
-
+                {/* EDIT BUTTON */}
                 {user &&
                   (user.role === "ADMIN" || user.id === post.author.id) && (
                     <button
-                      className="absolute top-3 right-3 text-gray-400 hover:text-orange-600 transition"
+                      className="absolute top-3 right-3 bg-white p-2 rounded-full shadow hover:text-orange-600 transition"
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(`/posts/edit/${post.id}`);

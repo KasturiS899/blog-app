@@ -1,5 +1,6 @@
 // app/layout.tsx
 
+import LayoutWrapper from "./components/LayoutWrapper";
 import Navbar from "./components/Navbar";
 import "./globals.css"; // your global styles
 
@@ -16,11 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-gray-50">
-        {/* Navbar will be visible on all pages */}
-        <Navbar />
-
-        {/* Main content */}
-        <main>{children}</main>
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );

@@ -44,7 +44,7 @@ export default function EditPostPage() {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/login");
+      router.push("/auth");
       return;
     }
 
@@ -54,7 +54,7 @@ export default function EditPostPage() {
         const userRes = await fetch("/api/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!userRes.ok) return router.push("/login");
+        if (!userRes.ok) return router.push("/auth");
         const userData: User = await userRes.json();
         setUser(userData);
 

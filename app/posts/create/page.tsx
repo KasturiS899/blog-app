@@ -16,7 +16,7 @@ export default function CreatePostPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [status, setStatus] = useState("DRAFT");
-
+  const [image, setImage] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -52,11 +52,28 @@ export default function CreatePostPage() {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/login");
+      router.push("/auths");
       return;
     }
 
     try {
+      let imageUrl = null;
+
+      // ✅ Upload image first
+      if (image) {
+        const formData = new FormData();
+        formData.append("file", image);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const uploadData = await uploadRes.json();
+        imageUrl = uploadData.url;
+      }
+
+      // ✅ Then create post
       const res = await fetch("/api/posts", {
         method: "POST",
         headers: {
@@ -68,6 +85,7 @@ export default function CreatePostPage() {
           content,
           categoryIds: selectedCategories,
           status,
+          imageUrl,
         }),
       });
 
@@ -109,7 +127,23 @@ export default function CreatePostPage() {
             required
           />
         </div>
-
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            Upload Thumbnail
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setImage(e.target.files?.[0] || null)}
+          />
+        </div>
+        {image && (
+          <img
+            src={URL.createObjectURL(image)}
+            alt="preview"
+            className="w-full h-48 object-cover rounded-lg mt-4"
+          />
+        )}
         {/* Category */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">

@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { title, content, categoryIds, status } = await req.json();
+    const { title, content, categoryIds, status, imageUrl } = await req.json();
     if (!title || !content)
       return NextResponse.json(
         { error: "All fields required" },
@@ -60,7 +60,8 @@ export async function POST(req: Request) {
       data: {
         title,
         content,
-       status: status ?? "DRAFT",
+        imageUrl,
+        status: status ?? "DRAFT",
         authorId: decoded.userId,
         categories: {
           connect: categoryIds?.map((id: number) => ({ id })) || [],

@@ -31,7 +31,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) return router.push("/login");
+    if (!token) return router.push("/auth");
 
     const fetchData = async () => {
       try {
@@ -39,7 +39,7 @@ export default function DashboardPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!userRes.ok) return router.push("/login");
+        if (!userRes.ok) return router.push("/auth");
 
         const userData: User = await userRes.json();
         setUser(userData);
