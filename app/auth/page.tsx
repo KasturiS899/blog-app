@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const quotes = [
   "Write what should never be forgotten.",
@@ -12,10 +13,17 @@ const quotes = [
 ];
 
 export default function AuthPage() {
+  const router = useRouter();
+
   const [isLogin, setIsLogin] = useState(true);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [displayedText, setDisplayedText] = useState("");
   const [charIndex, setCharIndex] = useState(0);
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   // typing quote effect
   useEffect(() => {
@@ -39,21 +47,80 @@ export default function AuthPage() {
     }
   }, [charIndex, quoteIndex]);
 
+  // LOGIN
+  const handleLogin = async () => {
+    setError("");
+
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      router.push("/dashboard");
+    } catch {
+      setError("Something went wrong");
+    }
+  };
+
+  // REGISTER
+  const handleRegister = async () => {
+    setError("");
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Registration failed");
+        return;
+      }
+
+      setIsLogin(true);
+    } catch {
+      setError("Something went wrong");
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-200 via-amber-100 to-yellow-50 relative overflow-hidden px-4">
-      {/* floating blobs */}
+
       <div className="absolute w-96 h-96 bg-orange-400/30 blur-3xl rounded-full -top-20 -left-20 animate-pulse"></div>
       <div className="absolute w-96 h-96 bg-yellow-300/30 blur-3xl rounded-full bottom-0 right-0 animate-pulse"></div>
 
-      {/* CARD */}
       <div className="w-full max-w-[1000px] h-[520px] bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl flex overflow-hidden">
+
         {/* LEFT FORM */}
         <div className="w-full md:w-[45%] p-10 flex flex-col justify-center">
-          <h1 className="text-3xl font-bold text-orange-600 mb-6">BlogApp</h1>
+
+          <h1 className="text-3xl font-bold text-orange-600 mb-6">
+            BlogApp
+          </h1>
+
+          {error && (
+            <p className="text-red-500 mb-3 text-sm">{error}</p>
+          )}
 
           <div className="relative h-[300px]">
+
             <AnimatePresence mode="wait">
+
               {isLogin ? (
+
                 <motion.div
                   key="login"
                   initial={{ rotateY: 90, opacity: 0 }}
@@ -62,20 +129,30 @@ export default function AuthPage() {
                   transition={{ duration: 0.5 }}
                   className="absolute w-full"
                 >
-                  <h2 className="text-xl font-semibold mb-4">Welcome back</h2>
+
+                  <h2 className="text-xl font-semibold mb-4">
+                    Welcome back
+                  </h2>
 
                   <input
                     placeholder="Email"
-                  className="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:border-orange-400 outline-none"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:border-orange-400 outline-none"
                   />
 
                   <input
                     type="password"
                     placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full border border-gray-300 p-3 rounded-lg mb-4 focus:border-orange-400 outline-none"
                   />
 
-                  <button className="w-full bg-orange-500 text-white p-3 rounded-lg hover:bg-orange-600 transition">
+                  <button
+                    onClick={handleLogin}
+                    className="w-full bg-orange-500 text-white p-3 rounded-lg hover:bg-orange-600 transition"
+                  >
                     Login
                   </button>
 
@@ -88,8 +165,11 @@ export default function AuthPage() {
                       Sign up
                     </span>
                   </p>
+
                 </motion.div>
+
               ) : (
+
                 <motion.div
                   key="register"
                   initial={{ rotateY: -90, opacity: 0 }}
@@ -98,25 +178,37 @@ export default function AuthPage() {
                   transition={{ duration: 0.5 }}
                   className="absolute w-full"
                 >
-                  <h2 className="text-xl font-semibold mb-4">Create account</h2>
+
+                  <h2 className="text-xl font-semibold mb-4">
+                    Create account
+                  </h2>
 
                   <input
                     placeholder="Name"
-                  className="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:border-orange-400 outline-none"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:border-orange-400 outline-none"
                   />
 
                   <input
                     placeholder="Email"
-                     className="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:border-orange-400 outline-none"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full border border-gray-300 p-3 rounded-lg mb-3 focus:border-orange-400 outline-none"
                   />
 
                   <input
                     type="password"
                     placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="w-full border border-gray-300 p-3 rounded-lg mb-4 focus:border-orange-400 outline-none"
                   />
 
-                  <button className="w-full bg-orange-500 text-white p-3 rounded-lg hover:bg-orange-600 transition">
+                  <button
+                    onClick={handleRegister}
+                    className="w-full bg-orange-500 text-white p-3 rounded-lg hover:bg-orange-600 transition"
+                  >
                     Register
                   </button>
 
@@ -129,15 +221,21 @@ export default function AuthPage() {
                       Login
                     </span>
                   </p>
+
                 </motion.div>
+
               )}
+
             </AnimatePresence>
+
           </div>
         </div>
 
         {/* RIGHT QUOTES */}
         <div className="hidden md:flex w-[55%] bg-gradient-to-br from-orange-400 to-amber-400 text-white items-center justify-center p-10">
+
           <div className="h-[200px] flex flex-col justify-center">
+
             <h2 className="text-3xl font-serif text-center leading-relaxed min-h-[120px]">
               {displayedText}
               <span className="animate-pulse">|</span>
@@ -146,8 +244,11 @@ export default function AuthPage() {
             <p className="mt-6 text-white/80 text-center">
               Share your ideas with the world ✍️
             </p>
+
           </div>
+
         </div>
+
       </div>
     </div>
   );
