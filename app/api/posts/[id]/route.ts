@@ -64,22 +64,26 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const decoded = verifyToken(req);
-    const postId = parseInt(params.id);
+    const { id } = await context.params;
+    const postId = parseInt(id);
 
     const post = await prisma.post.findUnique({ where: { id: postId } });
-    if (!post)
+
+    if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
 
     if (decoded.role !== "ADMIN" && post.authorId !== decoded.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.post.delete({ where: { id: postId } });
+
     return NextResponse.json({ message: "Post deleted" });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
